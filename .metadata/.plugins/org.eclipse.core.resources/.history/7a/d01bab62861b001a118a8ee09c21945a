@@ -1,0 +1,165 @@
+//****************************************************************************
+//      Light class
+//****************************************************************************
+// McKenzie Joyce
+// CS480
+ public class Light {
+	public Point3D direction;
+	public ColorType color;
+	public Point3D position;
+	public float a0, a1, a2;
+	public int angle;
+	
+	public boolean ambient;
+	public boolean infinite;
+
+	public boolean lightOn;
+	public boolean isPoint;
+	
+	// Constructor for ambient and infinite light models
+	public Light(ColorType _c, Point3D _direction, boolean _ambient, boolean _infinite){
+		color = new ColorType(_c);
+		direction = new Point3D(_direction);
+		infinite = _infinite;
+		ambient = _ambient;
+		isPoint = false;
+		lightOn = true;
+	}
+
+	// Constructor for point light models
+	public Light(ColorType _c, Point3D _direction, Point3D _position){
+		color = new ColorType(_c);
+		direction = new Point3D(_direction);
+		position = new Point3D(_position);
+		infinite = false;
+		ambient = false;
+		a0 = a1 = a2 = 0.00001f;
+		angle = 50;
+		lightOn = true;
+		isPoint = true;
+		
+	}
+
+	// Function to turn light on and off 
+	public void flickerLight(){
+		lightOn = !lightOn;
+	}
+	
+	// Apply this light source to the vertex / normal and return the resulting color value 
+	public ColorType applyLight(Material mat, Point3D v, Point3D n, Point3D ps){
+		
+		//Will store the result of function 
+		ColorType res = new ColorType();
+		
+		// Dot product between light direction and normal light must be facing in the positive direction
+		// If dot <= 0.0 this light is facing away and has no effect 
+		double dot;
+		Point3D pl = new Point3D(1, 1, 1);
+
+		// Calculate dot product based on which light source we are considering 
+		// Dot product of direction and normal if its infinite or ambient 
+		if(infinite == true || ambient == true){
+			dot = direction.dotProduct(n);
+		} 
+		// Dot product of normalized position and n if point light source 
+		else {
+			pl = position.minus(ps);
+			pl.normalize();
+			dot = pl.dotProduct(n);
+		}
+
+		// If this light source effects the shading 
+		if(dot>0.0){
+			// Ambient light source
+			if(mat.ambient && ambient){
+				res.r = (float) (color.r * mat.ka.r);
+				res.g = (float) (color.g * mat.ka.g);
+				res.b = (float) (color.b * mat.ka.b);
+			}
+
+			// Diffuse component
+			if(mat.diffuse){
+				res.r = (float)(dot*mat.kd.r*color.r);
+				res.g = (float)(dot*mat.kd.g*color.g);
+				res.b = (float)(dot*mat.kd.b*color.b);
+			}
+			// Specular component
+			if(mat.specular){
+				Point3D r = direction.reflect(n);
+				dot = r.dotProduct(v);
+				if(dot>0.0){
+					res.r += (float)Math.pow((dot*mat.ks.r*color.r),mat.ns);
+					res.g += (float)Math.pow((dot*mat.ks.g*color.g),mat.ns);
+					res.b += (float)Math.pow((dot*mat.ks.b*color.b),mat.ns);
+				}
+			}
+	
+			// Radial and Angular attenuation
+			if(infinite == false && ambient == false) {
+
+				// Radial
+				float d = position.distance(ps);
+				float radial = 1 / (a0 + a1 * d + a2 * (float) Math.pow(d, 2));
+
+				// Angular
+				float cos = pl.dotProduct(direction);
+				float angular = 1f;
+				if(cos > Math.cos(Math.toRadians(angle))){
+					angular = (float) Math.pow(cos, 2);
+				}
+
+				res.r *= radial * angular;
+				res.g *= radial * angular;
+				res.b *= radial * angular;
+
+			}
+			// No matter what light source it is clamp so that allowable maximum illumination level is not exceeded
+			res.clamp();
+		}
+		return(res);
+	}
+	//Apply light for Phong shading 
+//	public ColorType applyLight(Material mat, Point3D v, Point3D n, ColorType res, Point3D ps){
+//		Point3D direction_ = new Point3D(direction);
+//		Point3D pl = new Point3D(1, 1, 1);
+//		//change direction if point light
+//		if (isPoint){
+//			Point3D result = pl.minus(ps);
+//			result.normalize();
+//			direction_=result;
+//		}
+//		
+//		if (mat.ambient && ambient){
+//			res.r += (float)(mat.ka.r*color.r);
+//			res.g += (float)(mat.ka.g*color.g);
+//			res.b += (float)(mat.ka.b*color.b);
+//		}
+//		
+//		// dot product between light direction and normal
+//		// light must be facing in the positive direction
+//		// dot <= 0.0 implies this light is facing away (not toward) this point
+//		// therefore, light only contributes if dot > 0.0
+//		double dot = direction_.dotProduct(n);
+//		if(dot>0.0){
+//			// diffuse component
+//			if(mat.diffuse){
+//				res.r = (float)(dot*mat.kd.r*color.r);
+//				res.g = (float)(dot*mat.kd.g*color.g);
+//				res.b = (float)(dot*mat.kd.b*color.b);
+//			}
+//			// specular component
+//			if(mat.specular){
+//				Point3D r = direction.reflect(n);
+//				dot = r.dotProduct(v);
+//				if(dot>0.0){
+//					res.r += (float)Math.pow((dot*mat.ks.r*color.r),mat.ns);
+//					res.g += (float)Math.pow((dot*mat.ks.g*color.g),mat.ns);
+//					res.b += (float)Math.pow((dot*mat.ks.b*color.b),mat.ns);
+//				}
+//			}	
+//		}
+//		// clamp so that allowable maximum illumination level is not exceeded
+//		res.clamp();
+//		return(res);
+//	}
+}

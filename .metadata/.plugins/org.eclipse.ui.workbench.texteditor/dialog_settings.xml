@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item value="false" key="isRegEx"/>
+		<item value="slices-" key="selection"/>
+		<item value="true" key="casesensitive"/>
+		<item value="false" key="wholeword"/>
+		<list key="findhistory">
+			<item value="n-"/>
+			<item value="SketchBase.drawTriangle(buff,tri[0],tri[1],tri[2],gouraudRender,depthBuffer); "/>
+			<item value="doSmoothShading"/>
+			<item value="(int)v"/>
+			<item value="ellip"/>
+			<item value="phongShade"/>
+			<item value="factorS"/>
+			<item value="a0"/>
+		</list>
+		<list key="replacehistory">
+			<item value="stacks="/>
+			<item value="SketchBase.drawTriangle(buff,tri[0],tri[1],tri[2],gouraudRender, flatRender, depthBuffer); "/>
+			<item value="gouraudRender"/>
+			<item value="v"/>
+			<item value="ellipsoid"/>
+			<item value="phongRender"/>
+			<item value="specularFactor"/>
+			<item value="lightOn"/>
+		</list>
+	</section>
+</section>

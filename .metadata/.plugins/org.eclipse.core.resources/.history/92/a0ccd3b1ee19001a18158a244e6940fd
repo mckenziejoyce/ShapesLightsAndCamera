@@ -1,0 +1,13 @@
+
+abstract public class Light {
+	public Point3D direction;
+	public ColorType color;
+	public Point3D position;
+	public float a0, a1, a2;
+	public int angle;
+	public boolean lightsOn;
+	
+	public boolean infinite;
+	public boolean ambient;
+	
+}

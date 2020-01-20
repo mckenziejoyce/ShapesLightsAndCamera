@@ -1,0 +1,925 @@
+//****************************************************************************
+// SketchBase.  
+//****************************************************************************
+// Comments : 
+//   Subroutines to manage and draw points, lines an triangles
+//
+// History :
+//   Aug 2014 Created by Jianming Zhang (jimmie33@gmail.com) based on code by
+//   Stan Sclaroff (from CS480 '06 poly.c)
+
+import java.awt.image.BufferedImage;
+import java.util.*;
+
+public class SketchBase 
+{
+	public SketchBase()
+	{
+		// deliberately left blank
+	}
+	
+	/**********************************************************************
+	 * Draws a point.
+	 * This is achieved by changing the color of the buffer at the location
+	 * corresponding to the point. 
+	 * 
+	 * @param buff
+	 *          Buffer object.
+	 * @param p
+	 *          Point to be drawn.
+	 */
+	public static void drawPoint(BufferedImage buff, Point2D p)
+	{
+		if(p.x>=0 && p.x<buff.getWidth() && p.y>=0 && p.y < buff.getHeight())
+			buff.setRGB(p.x, buff.getHeight()-p.y-1, p.c.getRGB_int());	
+	}
+	public static void drawPoint(BufferedImage buff, Point3D p) {
+		buff.setRGB((int)p.x, (int)(buff.getHeight() - p.y - 1), p.c.getRGB_int());
+	}
+	
+	/**********************************************************************
+	 * Draws a line segment using Bresenham's algorithm, linearly 
+	 * interpolating RGB color along line segment.
+	 * This method only uses integer arithmetic.
+	 * 
+	 * @param buff
+	 *          Buffer object.
+	 * @param p1
+	 *          First given endpoint of the line.
+	 * @param p2
+	 *          Second given endpoint of the line.
+	 */
+	public static void drawLine(BufferedImage buff, Point2D p1, Point2D p2)
+	{
+	    int x0=p1.x, y0=p1.y;
+	    int xEnd=p2.x, yEnd=p2.y;
+	    int dx = Math.abs(xEnd - x0),  dy = Math.abs(yEnd - y0);
+
+	    if(dx==0 && dy==0)
+	    {
+	    	drawPoint(buff,p1);
+	    	return;
+	    }
+	    
+	    // if slope is greater than 1, then swap the role of x and y
+	    boolean x_y_role_swapped = (dy > dx); 
+	    if(x_y_role_swapped)
+	    {
+	    	x0=p1.y; 
+	    	y0=p1.x;
+	    	xEnd=p2.y; 
+	    	yEnd=p2.x;
+	    	dx = Math.abs(xEnd - x0);
+	    	dy = Math.abs(yEnd - y0);
+	    }
+	    
+	    // initialize the decision parameter and increments
+	    int p = 2 * dy - dx;
+	    int twoDy = 2 * dy,  twoDyMinusDx = 2 * (dy - dx);
+	    int x=x0, y=y0;
+	    
+	    // set step increment to be positive or negative
+	    int step_x = x0<xEnd ? 1 : -1;
+	    int step_y = y0<yEnd ? 1 : -1;
+	    
+	    // deal with setup for color interpolation
+	    // first get r,g,b integer values at the end points
+	    int r0=p1.c.getR_int(), rEnd=p2.c.getR_int();
+	    int g0=p1.c.getG_int(), gEnd=p2.c.getG_int();
+	    int b0=p1.c.getB_int(), bEnd=p2.c.getB_int();
+	    
+	    // compute the change in r,g,b 
+	    int dr=Math.abs(rEnd-r0), dg=Math.abs(gEnd-g0), db=Math.abs(bEnd-b0);
+	    
+	    // set step increment to be positive or negative 
+	    int step_r = r0<rEnd ? 1 : -1;
+	    int step_g = g0<gEnd ? 1 : -1;
+	    int step_b = b0<bEnd ? 1 : -1;
+	    
+	    // compute whole step in each color that is taken each time through loop
+	    int whole_step_r = step_r*(dr/dx);
+	    int whole_step_g = step_g*(dg/dx);
+	    int whole_step_b = step_b*(db/dx);
+	    
+	    // compute remainder, which will be corrected depending on decision parameter
+	    dr=dr%dx;
+	    dg=dg%dx; 
+	    db=db%dx;
+	    
+	    // initialize decision parameters for red, green, and blue
+	    int p_r = 2 * dr - dx;
+	    int twoDr = 2 * dr,  twoDrMinusDx = 2 * (dr - dx);
+	    int r=r0;
+	    
+	    int p_g = 2 * dg - dx;
+	    int twoDg = 2 * dg,  twoDgMinusDx = 2 * (dg - dx);
+	    int g=g0;
+	    
+	    int p_b = 2 * db - dx;
+	    int twoDb = 2 * db,  twoDbMinusDx = 2 * (db - dx);
+	    int b=b0;
+	    
+	    // draw start pixel
+	    if(x_y_role_swapped)
+	    {
+	    	if(x>=0 && x<buff.getHeight() && y>=0 && y<buff.getWidth())
+	    		buff.setRGB(y, buff.getHeight()-x-1, (r<<16) | (g<<8) | b);
+	    }
+	    else
+	    {
+	    	if(y>=0 && y<buff.getHeight() && x>=0 && x<buff.getWidth())
+	    		buff.setRGB(x, buff.getHeight()-y-1, (r<<16) | (g<<8) | b);
+	    }
+	    
+	    while (x != xEnd) 
+	    {
+	    	// increment x and y
+	    	x+=step_x;
+	    	if (p < 0)
+	    		p += twoDy;
+	    	else 
+	    	{
+	    		y+=step_y;
+	    		p += twoDyMinusDx;
+	    	}
+		        
+	    	// increment r by whole amount rSlope, and correct for accumulated error if needed
+	    	r+=whole_step_r;
+	    	if (p_r < 0)
+	    		p_r += twoDr;
+	    	else 
+	    	{
+	    		r+=step_r;
+	    		p_r += twoDrMinusDx;
+	    	}
+		    
+	    	// increment g by whole amount bSlope, and correct for accumulated error if needed  
+	    	g+=whole_step_g;
+	    	if (p_g < 0)
+	    		p_g += twoDg;
+	    	else 
+	    	{
+	    		g+=step_g;
+	    		p_g += twoDgMinusDx;
+	    	}
+		    
+	    	// increment b by whole amount bSlope, and correct for accumulated error if needed
+	    	b+=whole_step_b;
+	    	if (p_b < 0)
+	    		p_b += twoDb;
+	    	else 
+	    	{
+	    		b+=step_b;
+	    		p_b += twoDbMinusDx;
+	    	}
+		    
+	    	if(x_y_role_swapped)
+	    	{
+	    		if(x>=0 && x<buff.getHeight() && y>=0 && y<buff.getWidth())
+	    			buff.setRGB(y, buff.getHeight()-x-1, (r<<16) | (g<<8) | b);
+	    	}
+	    	else
+	    	{
+	    		if(y>=0 && y<buff.getHeight() && x>=0 && x<buff.getWidth())
+	    			buff.setRGB(x, buff.getHeight()-y-1, (r<<16) | (g<<8) | b);
+	    	}
+	    }
+	}
+
+	//Override drawLine function for depth-buffer uses DDA 
+	public static void drawLine(BufferedImage buff, Point3D p1, Point3D p2, float[][] depthBuffer)
+	{
+		// Get the differences of the needed values 
+		float dx = p2.x - p1.x;
+		float dy = p2.y - p1.y;
+		float dz = p2.z - p1.z;
+		float dr = p2.c.r * 255.0f - p1.c.r * 255.0f;
+		float dg = p2.c.g * 255.0f - p1.c.g * 255.0f;
+		float db = p2.c.b * 255.0f - p1.c.b * 255.0f;
+
+		float incsNeeded;
+
+		// Calculate value for incsNeeded 
+		if (Math.abs(dx) > Math.abs(dy)) {
+			incsNeeded = Math.abs(dx);
+		} else {
+			incsNeeded = Math.abs(dy);
+		}
+
+		// Get the values of how much the x,y, and z values should change per increment 
+		float xInc = dx / incsNeeded;
+		float yInc = dy / incsNeeded;
+		float zInc = dz / incsNeeded;
+
+		// Create new point to keep track of values of where we are in the line 
+		Point3D currentPoint = new Point3D(p1.x, p1.y, p1.z, p1.c);
+
+		// Get the slope of RGB by dividing the difference of the color at p0 and p1 then dividing by how many steps 
+		// are needed to get there 
+		float rSlope = dr / incsNeeded;
+		float gSlope = dg / incsNeeded;
+		float bSlope = db / incsNeeded;
+
+		// Get RGB 
+		float red = currentPoint.c.r * 255.0f;
+		float green = currentPoint.c.g * 255.0f;
+		float blue = currentPoint.c.b * 255.0f;
+
+		// Check to make sure this is a point we can draw - in bounds and such and if it is update depth buffer and drawpoint 
+		if (currentPoint.y >= 0 && currentPoint.y < buff.getHeight() && currentPoint.x >= 0 && currentPoint.x < buff.getWidth() && currentPoint.z > depthBuffer[(int) currentPoint.x][(int) currentPoint.y]) {
+			depthBuffer[(int) currentPoint.x][(int) currentPoint.y] = currentPoint.z;
+			drawPoint(buff, currentPoint);
+		}
+
+		// Get x,y, and z values for current location 
+		float x = currentPoint.x, y = currentPoint.y, z = currentPoint.z;
+
+		// Checks if the line is vertical 
+		if (p1.x == p2.x) { 
+			// Goes through as many increments as needed 
+			for (int i = 0; i < incsNeeded; i++) {
+				y += yInc;
+				z += zInc;
+
+				currentPoint.y = Math.round(y);
+				currentPoint.z = Math.round(z);
+
+				red += rSlope;
+				green += gSlope;
+				blue += bSlope;
+
+				// Get the RGB value 
+				int rgb = (int) ((Math.round(red) << 16) | (Math.round(green) << 8) | Math.round(blue));
+				
+				// Check to make sure this is a point can be displayed - in bounds and such and if it is update depth buffer and set the rgb in buff 
+				if (y >= 0 && y < buff.getHeight() && x >= 0 && x < buff.getWidth() && z > depthBuffer[(int) currentPoint.x][(int) currentPoint.y]) {
+					depthBuffer[(int) currentPoint.x][(int) currentPoint.y] = currentPoint.z;
+					buff.setRGB((int)currentPoint.x, (int)(buff.getHeight() - currentPoint.y - 1), rgb);
+				}
+			}
+		} 
+		// If the line is not vertical 
+		else {
+			// Goes through as many increments as needed 
+			for (int i = 0; i < incsNeeded; i++) {
+				x += xInc;
+				y += yInc;
+				z += zInc;
+
+				// Set curr point coordinates to closest possible value after incremeneting by proper amount and proper color change 
+				currentPoint.x = Math.round(x);
+				currentPoint.y = Math.round(y);
+				currentPoint.z = Math.round(z);
+
+				red += rSlope;
+				green += gSlope;
+				blue += bSlope;
+
+				// Get the RGB value 
+				int rgb = (int) ((Math.round(red) << 16) | (Math.round(green) << 8) | Math.round(blue));
+
+				// Check to make sure this is a point can be displayed - in bounds and such and if it is update depth buffer and set the rgb in buff 
+				if (y >= 0 && y < buff.getHeight() && x >= 0 && x < buff.getWidth() && z > depthBuffer[(int) currentPoint.x][(int) currentPoint.y]) {
+					depthBuffer[(int) currentPoint.x][(int) currentPoint.y] = currentPoint.z;
+					buff.setRGB((int)currentPoint.x, (int)(buff.getHeight() - currentPoint.y - 1), rgb);
+				}
+
+			}
+		}
+	}
+	
+	//Draw a line using phong 
+	public static void drawLineWithPhong(BufferedImage buff, float[][] depthBuff, Point3D p1, Point3D p2, List<Light> lights, Material mat, Point3D v) {
+		// Calculate the differences of the verticies and normals 
+		float dx = p2.x - p1.x;
+		float dy = p2.y - p1.y;
+		float dz = p2.z - p1.z;
+		float dnx = p2.nx - p1.nx;
+		float dny = p2.ny - p1.ny;
+		float dnz = p2.nz - p1.nz;
+
+		//Create incsNeeded to determine how many times you need to increment when stepping through the line 
+		float incsNeeded;
+
+		if (Math.abs(dx) > Math.abs(dy)) {
+			incsNeeded = Math.abs(dx);
+		}
+		else {
+			incsNeeded = Math.abs(dy);
+		}
+
+		// Get the values of how much the x,y, and z values should change per increment 
+		float xInc = dx / incsNeeded;
+		float yInc = dy / incsNeeded;
+		float zInc = dz / incsNeeded;
+
+		// Create new point to keep track of values of where we are in the line 
+		Point3D currentPoint = new Point3D(p1.x, p1.y, p1.z, p1.nx, p1.ny,p1.nz, p1.c);
+
+		// Get the slope of the normals 
+		float nxSlope = dnx / incsNeeded;
+		float nySlope = dny / incsNeeded;
+		float nzSlope = dnz / incsNeeded;
+			
+		//Create a new point using the normals of the current location in the line
+		Point3D currentNormals = new Point3D(currentPoint.nx, currentPoint.ny,currentPoint.nz);
+		currentPoint.c = applyAllLights(lights,mat,v, currentNormals,new Point3D(currentPoint.x, currentPoint.y, currentPoint.z));
+			
+
+		// Check to make sure this is a point we can draw - in bounds and such and if it is update depth buffer and drawpoint 
+		if (currentPoint.y >= 0 && currentPoint.y < buff.getHeight() && currentPoint.x >= 0 && currentPoint.x < buff.getWidth() && currentPoint.z > depthBuff[(int) currentPoint.x][(int) currentPoint.y]) {
+			depthBuff[(int) currentPoint.x][(int) currentPoint.y] = currentPoint.z;
+			drawPoint(buff, currentPoint);
+		}
+
+		// Get x,y, and z values for current location 
+		float x = currentPoint.x, y = currentPoint.y, z = currentPoint.z;
+
+		// Checks if the line is vertical 
+		if (p1.x == p2.x) { 
+			// Goes through as many increments as needed 
+			for (int k = 0; k < incsNeeded; k++) {
+				y += yInc;
+				z += zInc;
+
+				currentPoint.y = Math.round(y);
+				currentPoint.z = Math.round(z);
+
+				currentNormals.x += nxSlope;
+				currentNormals.y += nySlope;
+				currentNormals.z += nzSlope;
+					
+				ColorType result = applyAllLights(lights,mat,v, currentNormals, new Point3D(currentPoint.x, currentPoint.y, currentPoint.z));
+				// get the RBG 
+				int rgb = (int) ((Math.round(result.getR_int()) << 16) | (Math.round(result.getG_int()) << 8) | Math.round(result.getB_int()));
+				// Check to make sure this is a point can be displayed - in bounds and such and if it is update depth buffer and set the rgb in buff 
+				if (y >= 0 && y < buff.getHeight() && x >= 0 && x < buff.getWidth() && z > depthBuff[(int) currentPoint.x][(int) currentPoint.y]) {
+					depthBuff[(int) currentPoint.x][(int) currentPoint.y] = currentPoint.z;
+					buff.setRGB((int)currentPoint.x,(int) (buff.getHeight() - currentPoint.y - 1), rgb);
+				}
+			}
+		} 
+		// Not a vertical line 
+		else {
+			// Goes through as many increments as needed 
+			for (int k = 0; k < incsNeeded; k++) {
+				// Get the values of how much the x,y, and z values should change per increment 
+				x += xInc;
+				y += yInc;
+				z += zInc;
+
+				// set current points verticies to as close as possible as what they should be 
+				currentPoint.x = Math.round(x);
+				currentPoint.y = Math.round(y);
+				currentPoint.z = Math.round(z);
+
+				// set current points normals to what they should be 
+				currentNormals.x += nxSlope;
+				currentNormals.y += nySlope;
+				currentNormals.z += nzSlope;
+					
+				// Apply all the lights 
+				ColorType result = applyAllLights(lights, mat, v, currentNormals, new Point3D(currentPoint.x, currentPoint.y, currentPoint.z));
+
+				// get the RBG 
+				int rgb = (int) ((Math.round(result.getR_int()) << 16) | (Math.round(result.getG_int()) << 8) | Math.round(result.getB_int()));
+
+				// Check to make sure this is a point can be displayed - in bounds and such and if it is update depth buffer and set the rgb in buff 
+				if (y >= 0 && y < buff.getHeight() && x >= 0 && x < buff.getWidth() && z > depthBuff[(int) currentPoint.x][(int) currentPoint.y]) {
+					depthBuff[(int) currentPoint.x][(int) currentPoint.y] = currentPoint.z;
+					buff.setRGB((int)currentPoint.x, (int)(buff.getHeight() - currentPoint.y - 1), rgb);
+				}
+
+			}
+		}
+
+	}
+	
+	/**********************************************************************
+	 
+	
+* Draws a filled triangle. 
+	 * The triangle may be filled using flat fill or smooth fill. 
+	 * This routine fills columns of pixels within the left-hand part, 
+	 * and then the right-hand part of the triangle.
+	 *   
+	 *	                         *
+	 *	                        /|\
+	 *	                       / | \
+	 *	                      /  |  \
+	 *	                     *---|---*
+	 *	            left-hand       right-hand
+	 *	              part             part
+	 *
+	 * @param buff
+	 *          Buffer object.
+	 * @param p1
+	 *          First given vertex of the triangle.
+	 * @param p2
+	 *          Second given vertex of the triangle.
+	 * @param p3
+	 *          Third given vertex of the triangle.
+	 * @param gouraudRender
+	 *          Flag indicating whether flat fill or smooth fill should be used.                   
+	 */
+	public static void drawTriangle(BufferedImage buff, Point2D p1, Point2D p2, Point2D p3, boolean gouraudRender)
+	{
+	    // sort the triangle vertices by ascending x value
+	    Point2D p[] = sortTriangleVerts(p1,p2,p3);
+	    
+	    int x; 
+	    float yA, yB;
+	    float dyA, dyB;
+	    float dRedSideA=0, dGreenSideA=0, dBlueSideA=0, dRedSideB=0, dGreenSideB=0, dBlueSideB=0;
+	    
+	    Point2D sideA = new Point2D(p[0]), sideB = new Point2D(p[0]);
+	    
+	    if(!gouraudRender)
+	    {
+	    	sideA.c = new ColorType(p1.c);
+	    	sideB.c = new ColorType(p1.c);
+	    }
+	    
+	    yB = p[0].y;
+	    dyB = ((float)(p[2].y - p[0].y))/(p[2].x - p[0].x);
+	    
+	    if(gouraudRender)
+	    {
+	    	// calculate slopes in r, g, b for segment b
+	    	dRedSideB = ((float)(p[2].c.r - p[0].c.r))/(p[2].x - p[0].x);
+	    	dGreenSideB = ((float)(p[2].c.g - p[0].c.g))/(p[2].x - p[0].x);
+	    	dBlueSideB = ((float)(p[2].c.b - p[0].c.b))/(p[2].x - p[0].x);
+	    }
+	    
+	    // if there is a left-hand part to the triangle then fill it
+	    if(p[0].x != p[1].x)
+	    {
+	    	yA = p[0].y;
+	    	dyA = ((float)(p[1].y - p[0].y))/(p[1].x - p[0].x);
+		    
+	    	if(gouraudRender)
+	    	{
+	    		// calculate slopes in r, g, b for segment a
+	    		dRedSideA = ((float)(p[1].c.r - p[0].c.r))/(p[1].x - p[0].x);
+	    		dGreenSideA = ((float)(p[1].c.g - p[0].c.g))/(p[1].x - p[0].x);
+	    		dBlueSideA = ((float)(p[1].c.b - p[0].c.b))/(p[1].x - p[0].x);
+	    	}
+		    
+		    // loop over the columns for left-hand part of triangle
+		    // filling from side a to side b of the span
+		    for(x = p[0].x; x < p[1].x; ++x)
+		    {
+		    	drawLine(buff, sideA, sideB);
+
+		    	++sideA.x;
+		    	++sideB.x;
+		    	yA += dyA;
+		    	yB += dyB;
+		    	sideA.y = (int)yA;
+		    	sideB.y = (int)yB;
+		    	if(gouraudRender)
+		    	{
+		    		sideA.c.r +=dRedSideA;
+		    		sideB.c.r +=dRedSideB;
+		    		sideA.c.g +=dGreenSideA;
+		    		sideB.c.g +=dGreenSideB;
+		    		sideA.c.b +=dBlueSideA;
+		    		sideB.c.b +=dBlueSideB;
+		    	}
+		    }
+	    }
+	    
+	    // there is no right-hand part of triangle
+	    if(p[1].x == p[2].x)
+	    	return;
+	    
+	    // set up to fill the right-hand part of triangle 
+	    // replace segment a
+	    sideA = new Point2D(p[1]);
+	    if(!gouraudRender)
+	    	sideA.c =new ColorType(p1.c);
+	    
+	    yA = p[1].y;
+	    dyA = ((float)(p[2].y - p[1].y))/(p[2].x - p[1].x);
+	    if(gouraudRender)
+	    {
+	    	// calculate slopes in r, g, b for replacement for segment a
+	    	dRedSideA = ((float)(p[2].c.r - p[1].c.r))/(p[2].x - p[1].x);
+	    	dGreenSideA = ((float)(p[2].c.g - p[1].c.g))/(p[2].x - p[1].x);
+	    	dBlueSideA = ((float)(p[2].c.b - p[1].c.b))/(p[2].x - p[1].x);
+	    }
+
+	    // loop over the columns for right-hand part of triangle
+	    // filling from side a to side b of the span
+	    for(x = p[1].x; x <= p[2].x; ++x)
+	    {
+	    	drawLine(buff, sideA, sideB);
+		    
+	    	++sideA.x;
+	    	++sideB.x;
+	    	yA += dyA;
+	    	yB += dyB;
+	    	sideA.y = (int)yA;
+	    	sideB.y = (int)yB;
+	    	if(gouraudRender)
+	    	{
+	    		sideA.c.r +=dRedSideA;
+	    		sideB.c.r +=dRedSideB;
+	    		sideA.c.g +=dGreenSideA;
+	    		sideB.c.g +=dGreenSideB;
+	    		sideA.c.b +=dBlueSideA;
+	    		sideB.c.b +=dBlueSideB;
+	    	}
+	    }
+	}
+
+	//Override drawTriangle function for depth-buffer
+	public static void drawTriangle(BufferedImage buff, Point3D p1, Point3D p2, Point3D p3, boolean gouraudRender, boolean flatRender, float[][] depthBuffer)
+	{
+		// sort the triangle vertices by ascending x value
+		Point3D p[] = sortTriangleVerts(p1,p2,p3);
+		
+		// Define x, y for side a and b, z for side a and b, and the difference of y and z for sides a and b 
+		float x; 
+		float yA;
+		float yB;
+		float dyA;
+		float dyB;
+		float zA;
+		float zB;
+		float dzA;
+		float dzB;
+
+		// Define the differences of the colors from p0 to p1 for each side
+		float dRedSideA=0;
+		float dGreenSideA=0;
+		float dBlueSideA=0;
+		float dRedSideB=0; 
+		float dGreenSideB=0;
+		float dBlueSideB=0;
+		
+		// Create points for side a and b 
+		Point3D sideA = new Point3D(p[0]);
+		Point3D sideB = new Point3D(p[0]);
+		
+		// Flat Rendering 
+		if(!gouraudRender && flatRender){
+			sideA.c = new ColorType(p1.c);
+			sideB.c = new ColorType(p1.c);
+		}
+		
+		// Adjust y and z values for side B 
+		yB = p[0].y;
+		dyB = ((float)(p[2].y - p[0].y))/(p[2].x - p[0].x);
+		zB = p[0].z;
+		dzB = ((float)(p[2].z - p[0].z))/(p[2].x - p[0].x);
+		
+		// Gouraud Rendering
+		if(gouraudRender && !flatRender){
+			// calculate slopes in r, g, b for segment b
+			dRedSideB = ((float)(p[2].c.r - p[0].c.r))/(p[2].x - p[0].x);
+			dGreenSideB = ((float)(p[2].c.g - p[0].c.g))/(p[2].x - p[0].x);
+			dBlueSideB = ((float)(p[2].c.b - p[0].c.b))/(p[2].x - p[0].x);
+		}
+		
+		// If left hand side needs to be filled in 
+		if(p[0].x != p[1].x){
+			// Adjust y and z values for side A
+			yA = p[0].y;
+			dyA = ((float)(p[1].y - p[0].y))/(p[1].x - p[0].x);
+			zA = p[0].z;
+			dzA = ((float)(p[1].z - p[0].z))/(p[1].x - p[0].x);
+			
+			// Gouraud Rendering 
+			if(gouraudRender && !flatRender){
+				// calculate slopes in r, g, b for side a
+				dRedSideA = ((float)(p[1].c.r - p[0].c.r))/(p[1].x - p[0].x);
+				dGreenSideA = ((float)(p[1].c.g - p[0].c.g))/(p[1].x - p[0].x);
+				dBlueSideA = ((float)(p[1].c.b - p[0].c.b))/(p[1].x - p[0].x);
+			}
+			
+			// loop through columns for side A of triangle filling from side a to side b of the span
+			for(x = p[0].x; x < p[1].x; ++x){
+				drawLine(buff, sideA, sideB, depthBuffer);
+
+				// Adjust x y and z values for side A and B
+				++sideA.x;
+				++sideB.x;
+				yA += dyA;
+				yB += dyB;
+				sideA.y = (int)yA;
+				sideB.y = (int)yB;
+
+				zA += dzA;
+				zB += dzB;
+				sideA.z = (int)zA;
+				sideB.z = (int)zB;
+
+				// Turn that smooth shading on baby 
+				if(gouraudRender && !flatRender){
+					sideA.c.r +=dRedSideA;
+					sideB.c.r +=dRedSideB;
+					sideA.c.g +=dGreenSideA;
+					sideB.c.g +=dGreenSideB;
+					sideA.c.b +=dBlueSideA;
+					sideB.c.b +=dBlueSideB;
+				}
+			}
+		}
+		
+		// No other part of the triangle to fill in 
+		if(p[1].x == p[2].x) {
+			return;
+		}
+		
+		// Need to fill the other part of triangle replace sideA
+		sideA = new Point3D(p[1]);
+		if(!gouraudRender && flatRender) {
+			sideA.c =new ColorType(p1.c);
+		}
+		
+		// Adjust y and z values for side A
+		yA = p[1].y;
+		dyA = ((float)(p[2].y - p[1].y))/(p[2].x - p[1].x);
+		zA = p[1].z;
+		dzA = ((float)(p[2].z - p[1].z))/(p[2].x - p[1].x);
+
+		// That good good gouraud
+		if(gouraudRender && !flatRender){
+			// calculate slopes in r, g, b for replacement for segment a
+			dRedSideA = ((float)(p[2].c.r - p[1].c.r))/(p[2].x - p[1].x);
+			dGreenSideA = ((float)(p[2].c.g - p[1].c.g))/(p[2].x - p[1].x);
+			dBlueSideA = ((float)(p[2].c.b - p[1].c.b))/(p[2].x - p[1].x);
+		}
+
+		// Loop through columns for right-hand part of triangle filling from side a to side b of the span
+		for(x = p[1].x; x <= p[2].x; ++x)
+		{
+			drawLine(buff, sideA, sideB, depthBuffer);
+			// Adjust x y and z values for side A and B
+			++sideA.x;
+			++sideB.x;
+			yA += dyA;
+			yB += dyB;
+			sideA.y = (int)yA;
+			sideB.y = (int)yB;
+
+			zA += dzA;
+			zB += dzB;
+			sideA.z = (int)zA;
+			sideB.z = (int)zB;
+
+			// Gouraud Rendering 
+			if(gouraudRender && !flatRender)
+			{
+				sideA.c.r +=dRedSideA;
+				sideB.c.r +=dRedSideB;
+				sideA.c.g +=dGreenSideA;
+				sideB.c.g +=dGreenSideB;
+				sideA.c.b +=dBlueSideA;
+				sideB.c.b +=dBlueSideB;
+			}
+		}
+	}
+	
+	//Draw a triangle using Phong 
+	public static void drawTriangleWithPhong(BufferedImage buff, float[][] depthBuff, Point3D p1, Point3D p2, Point3D p3, Point3D n1, Point3D n2, Point3D n3, List<Light> lights, Material mat, Point3D v) {
+		// sort the triangle vertices by ascending x value and set normals before that 
+		p1.nx = n1.x;
+		p1.ny = n1.y;
+		p1.nz = n1.z;
+		p2.nx = n2.x;
+		p2.ny = n2.y;
+		p2.nz = n2.z;
+		p3.nx = n3.x;
+		p3.ny = n3.y;
+		p3.nz = n3.z;
+		Point3D p[] = sortTriangleVerts(p1, p2, p3);
+		
+		// Define x value and y and z value for sides a and b 
+		int x;
+		float yA;
+		float yB;
+		float zA;
+		float zB;
+
+		// Create a point thats like p0 but its called side A 
+		Point3D sideA = new Point3D(p[0]); 
+		sideA.nx = p[0].nx;
+		sideA.ny = p[0].ny;
+		sideA.nz = p[0].nz;
+		
+		// Create a point thats like p1 but its called side B
+		Point3D sideB = new Point3D(p[0]);
+		sideB.nx = p[0].nx;
+		sideB.ny = p[0].ny;
+		sideB.nz = p[0].nz;
+
+		// y and z for side B and el differences 
+		yB = p[0].y;
+		zB = p[0].z;
+		float dyB = ((float) (p[2].y - p[0].y)) / (p[2].x - p[0].x);
+		float dzB = ((float) (p[2].z - p[0].z)) / (p[2].x - p[0].x);
+
+		// define differences of z,y, and normals
+		float dyA;
+		float dzA;
+		float dnxA = 0;
+		float dnyA = 0;
+		float dnzA = 0;
+		float dnxB = 0;
+		float dnyB = 0;
+		float dnzB = 0;
+		
+		// Calculate slopes in r, g, b for side b
+		dnxB = ((float) (p[2].nx - p[0].nx)) / (p[2].x - p[0].x);
+		dnyB = ((float) (p[2].ny - p[0].ny)) / (p[2].x - p[0].x);
+		dnzB = ((float) (p[2].nz - p[0].nz)) / (p[2].x - p[0].x);
+
+		// If theres another part of the triangle to fill do that 
+		if (p[0].x != p[1].x) {
+			yA = p[0].y;
+			zA = p[0].z;
+			dyA = ((float) (p[1].y - p[0].y)) / (p[1].x - p[0].x);
+			dzA = ((float) (p[1].z - p[0].z)) / (p[1].x - p[0].x);
+
+			dnxA = ((float) (p[1].nx - p[0].nx)) / (p[1].x - p[0].x);
+			dnyA = ((float) (p[1].ny - p[0].ny)) / (p[1].x - p[0].x);
+			dnzA = ((float) (p[1].nz - p[0].nz)) / (p[1].x - p[0].x);
+
+			// Loop through the columns for right-hand part of triangle filling from side a to side b 
+			for (x = (int) p[0].x; x < p[1].x; ++x) {
+				drawLineWithPhong(buff, depthBuff, sideA, sideB, lights, mat, v);
+				
+
+				++sideA.x;
+				++sideB.x;
+				yA += dyA;
+				yB += dyB;
+				zA += dzA;
+				zB += dzB;
+				sideA.y = (int) yA;
+				sideB.y = (int) yB;
+				sideA.z = (int) zA;
+				sideB.z = (int) zB;
+				
+				// Phong normal interpolation
+				sideA.nx += dnxA;
+				sideB.nx += dnxB;
+				sideA.ny += dnyA;
+				sideB.ny += dnyB;
+				sideA.nz += dnzA;
+				sideB.nz += dnzB;
+				Point3D sideAnormal = new Point3D(sideA.nx,sideA.ny,sideA.nz);
+				Point3D sideBnormal = new Point3D(sideB.nx,sideB.ny,sideB.nz);
+				sideA.c = applyAllLights(lights, mat, v, sideAnormal, sideA);
+				sideB.c = applyAllLights(lights, mat, v, sideBnormal, sideB);
+				
+			}
+		}
+
+		// No other part of the question 
+		if (p[1].x == p[2].x) {
+			return;
+		}
+		sideA = new Point3D(p[1]);
+		sideA.nx = p[1].nx;
+		sideA.ny = p[1].ny;
+		sideA.nz = p[1].nz;
+		
+
+		yA = p[1].y;
+		zA = p[1].z;
+		dyA = ((float) (p[2].y - p[1].y)) / (p[2].x - p[1].x);
+		dzA = ((float) (p[2].z - p[1].z)) / (p[2].x - p[1].x);
+		// calculate slopes in r, g, b for replacement for segment a
+		dnxA = ((float) (p[2].nx - p[1].nx)) / (p[2].x - p[1].x);
+		dnyA = ((float) (p[2].ny - p[1].ny)) / (p[2].x - p[1].x);
+		dnzA = ((float) (p[2].nz - p[1].nz)) / (p[2].x - p[1].x);
+
+		// loop over the columns for left-hand part of triangle
+		// filling from side a to side b of the span
+		for (x = (int) p[1].x; x < p[2].x; ++x) {
+			
+			drawLineWithPhong(buff, depthBuff, sideA, sideB, lights, mat, v);
+			
+
+			++sideA.x;
+			++sideB.x;
+			yA += dyA;
+			yB += dyB;
+			zA += dzA;
+			zB += dzB;
+			sideA.y = (int) yA;
+			sideB.y = (int) yB;
+			sideA.z = (int) zA;
+			sideB.z = (int) zB;
+			
+			// Phong normal interpolation
+			sideA.nx += dnxA;
+			sideB.nx += dnxB;
+			sideA.ny += dnyA;
+			sideB.ny += dnyB;
+			sideA.nz += dnzA;
+			sideB.nz += dnzB;
+			
+			Point3D sideAnormal = new Point3D(sideA.nx,sideA.ny,sideA.nz);
+			Point3D sideBnormal = new Point3D(sideB.nx,sideB.ny,sideB.nz);
+			
+			sideA.c = applyAllLights(lights, mat, sideA, sideAnormal, sideA);
+			sideB.c = applyAllLights(lights, mat, sideB, sideBnormal, sideB);
+		}
+	}
+	
+	/**********************************************************************
+	
+ * Helper function to bubble sort triangle vertices by ascending x value.
+	 * 
+	 * @param p1
+	 *          First given vertex of the triangle.
+	 * @param p2
+	 *          Second given vertex of the triangle.
+	 * @param p3
+	 *          Third given vertex of the triangle.
+	 * @return 
+	 *          Array of 3 points, sorted by ascending x value.
+	 */
+	private static Point2D[] sortTriangleVerts(Point2D p1, Point2D p2, Point2D p3)
+	{
+	    Point2D pts[] = {p1, p2, p3};
+	    Point2D tmp;
+	    int j=0;
+	    boolean swapped = true;
+	         
+	    while (swapped) 
+	    {
+	    	swapped = false;
+	    	j++;
+	    	for (int i = 0; i < 3 - j; i++) 
+	    	{                                       
+	    		if (pts[i].x > pts[i + 1].x) 
+	    		{                          
+	    			tmp = pts[i];
+	    			pts[i] = pts[i + 1];
+	    			pts[i + 1] = tmp;
+	    			swapped = true;
+	    		}
+	    	}                
+	    }
+	    return(pts);
+	}
+	private static Point3D[] sortTriangleVerts(Point3D p1, Point3D p2, Point3D p3)
+	{
+		Point3D pts[] = {p1, p2, p3};
+		Point3D tmp;
+		int j=0;
+		boolean swapped = true;
+			 
+		while (swapped) 
+		{
+			swapped = false;
+			j++;
+			for (int i = 0; i < 3 - j; i++) 
+			{                                       
+				if (pts[i].x > pts[i + 1].x) 
+				{                          
+					tmp = pts[i];
+					pts[i] = pts[i + 1];
+					pts[i + 1] = tmp;
+					swapped = true;
+				}
+			}                
+		}
+		return(pts);
+	}
+	
+	//Apply all the lights in the scene - used in phong 
+	public static ColorType applyAllLights(List<Light> lights, Material mat, Point3D v, Point3D n, Point3D ps)
+	{
+		Light l;
+		
+		ColorType res = new ColorType();
+		// temporarily holds RGB values
+		ColorType temp = new ColorType();
+
+		// loops through all lights in a given scene
+		for(int i = 0; i < lights.size(); i++){
+			l = lights.get(i);
+			
+			if(l.lightOn){
+				temp = l.applyLight(mat, v, n, ps);
+				// adds up all color for each channel
+				res.r += temp.r;
+				res.g += temp.g;
+				res.b += temp.b;
+			}
+		}
+
+		// clamp so that allowable maximum illumination level is not exceeded
+		res.clamp();
+
+		return res;
+
+	}
+
+}

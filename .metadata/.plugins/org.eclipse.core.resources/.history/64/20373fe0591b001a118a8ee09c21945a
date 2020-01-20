@@ -1,0 +1,103 @@
+//****************************************************************************
+//     Torus class
+//****************************************************************************
+// McKenzie Joyce
+// CS480
+public class Torus3D{
+	private Point3D center;
+	private float r;
+	private float rAxial;
+	private int stacks,slices;
+	public Mesh3D mesh;
+	
+	private final float uMin = (float)-Math.PI;
+	private final float uMax = (float)Math.PI;
+	private final float vMin = (float)-Math.PI;
+	private final float vMax = (float)Math.PI;
+
+  public Torus3D(float _x, float _y, float _z, float _r, float _rAxial, int _stacks, int _slices){
+	center = new Point3D(_x,_y,_z);
+	r = _r;
+	rAxial = _rAxial;
+	stacks = _stacks;
+	slices = _slices;
+	initMesh();
+  }
+
+  public void set_center(float _x, float _y, float _z){
+	center.x=_x;
+	center.y=_y;
+	center.z=_z;
+	fillMesh();  
+  }
+
+  public void set_radius(float _r, float _rAxial){
+	r = _r;
+	rAxial = _rAxial;
+	fillMesh(); 
+  }
+
+  public void set_stacks(int _stacks){
+	  stacks = _stacks;
+	  initMesh(); 
+  }
+
+  public void set_slices(int _slices){
+	slices = _slices;
+	initMesh(); 
+  }
+
+  public int get_slices(){
+	return slices;
+  }
+
+  public int get_stacks(){
+	return stacks;
+  }
+
+  private void initMesh(){
+	mesh = new Mesh3D(stacks,slices);
+	fillMesh();  
+  }
+
+  private void fillMesh(){
+    int i, j;
+	float theta, phi;
+	float d_phi = (uMax-uMin)/((float)slices-1);
+	float d_theta = (vMax-vMin)/((float)stacks-1);
+    float cos_theta, sin_theta;
+	float cos_phi, sin_phi;
+    Point3D du = new Point3D();
+	Point3D dv = new Point3D();
+
+	for(i=0,theta=(float)-Math.PI;i<stacks;++i,theta += d_theta)
+    {
+		cos_theta=(float)Math.cos(theta);
+		sin_theta=(float)Math.sin(theta);
+		
+		for(j=0,phi=(float)-Math.PI;j<slices;++j,phi += d_phi)
+		{
+			// Compute vertex
+			cos_phi = (float)Math.cos(phi);
+			sin_phi = (float)Math.sin(phi);
+			mesh.v[i][j].x=center.x+(rAxial+r*cos_phi)*cos_theta;
+			mesh.v[i][j].y=center.y+(rAxial+r*cos_phi)*sin_theta;
+			mesh.v[i][j].z=center.z+r*sin_phi;
+			
+			// Compute partial derivatives
+			du.x = -(rAxial+r*cos_phi)*sin_theta;
+			du.y = (rAxial+r*cos_phi)*cos_theta;
+			du.z = 0;
+			
+			dv.x = -r*sin_phi*cos_theta;
+			dv.y = -r*sin_phi*sin_theta;
+			dv.z = r*cos_phi;
+			
+			//Use cross product to get the normal 
+			du.crossProduct(dv, mesh.n[i][j]);
+			//Normalize to produce a unit vector for the normal
+			mesh.n[i][j].normalize();
+		}
+    }
+  }
+}

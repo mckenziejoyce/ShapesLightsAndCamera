@@ -1,0 +1,52 @@
+import java.util.Random;
+
+//****************************************************************************
+//       Ambient light source class
+//****************************************************************************
+// McKenzie Joyce 
+//
+// CS480 
+//
+public class LightAmbient extends Light{
+	private Random rnd=new Random();
+	
+	public LightAmbient(ColorType _c, Point3D _direction)
+	{
+		color = new ColorType(_c);
+		direction = new Point3D(_direction); 
+		position = new Point3D(0, 0, 0); // Not used in this class
+		lightsOn = true;
+		
+	}
+	
+	public ColorType applyLight(Material mat, Point3D v, Point3D n) {
+		ColorType res = new ColorType();
+		
+		// dot product between light direction and normal
+		// light must be facing in the positive direction
+		// dot <= 0.0 implies this light is facing away (not toward) this point
+		// therefore, light only contributes if dot > 0.0 
+		double dot = direction.dotProduct(n);
+		
+		if(dot>0.0) {
+			res.r = (float) (color.r * mat.ka.r);
+			res.g = (float) (color.g * mat.ka.g);
+			res.b = (float) (color.b * mat.ka.b);
+			
+		}
+		res.clamp();
+		return(res);
+	}
+	public void lightSwitch()
+	{
+		lightsOn = !lightsOn;
+
+		if(lightsOn)
+		{
+			System.out.println("Light turned on");
+		} else 
+		{
+			System.out.println("Light turned off");
+		}
+	}
+}

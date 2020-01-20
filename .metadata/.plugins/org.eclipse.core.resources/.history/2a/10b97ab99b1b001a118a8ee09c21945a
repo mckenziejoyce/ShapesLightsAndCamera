@@ -1,0 +1,99 @@
+//****************************************************************************
+//      Sphere class
+//****************************************************************************
+// History :
+//   Nov 6, 2014 Created by Stan Sclaroff
+//
+
+public class Sphere3D
+{
+	private Point3D center;
+	private float r;
+	private int stacks,slices;
+	public Mesh3D mesh;
+	
+	public Sphere3D(float _x, float _y, float _z, float _r, int _stacks, int _slices)
+	{
+		this.center = new Point3D(_x,_y,_z);
+		this.r = _r;
+		this.stacks = _stacks;
+		this.slices = _slices;
+		initMesh();
+	}
+	
+	public void set_center(float _x, float _y, float _z)
+	{
+		this.center.x=_x;
+		this.center.y=_y;
+		this.center.z=_z;
+		fillMesh();  
+	}
+	
+	public void set_radius(float _r)
+	{
+		this.r = _r;
+		fillMesh(); 
+	}
+	
+	public void set_stacks(int _stacks)
+	{
+		this.stacks = _stacks;
+		initMesh(); 
+	}
+	
+	public void set_slices(int _slices)
+	{
+		this.slices = _slices;
+		initMesh(); 
+	}
+	
+	public int get_n()
+	{
+		return this.slices;
+	}
+	
+	public int get_m()
+	{
+		return this.stacks;
+	}
+
+	private void initMesh()
+	{
+		this.mesh = new Mesh3D(stacks,slices);
+		fillMesh();  
+	}
+		
+	// fill the triangle mesh vertices and normals
+	// using the current parameters for the sphere
+	private void fillMesh()
+	{
+		int i, j;
+		float theta, phi;
+		float d_theta = (float)(2*Math.PI)/(float)(slices-1);
+		float d_phi = (float)(Math.PI)/(float)(stacks-1);
+		float cos_theta, sin_theta;
+		float cos_phi, sin_phi;
+		
+		for(i=0, phi=(float)(-0.5*Math.PI); i<stacks; i++, phi+=d_phi) {
+			//Get the sin and cos for phi 
+			cos_phi = (float)Math.cos(phi);
+			sin_phi = (float)Math.sin(phi);
+			
+			for(j=0, theta=(float)(-Math.PI); j<slices; j++, theta+=d_theta) {
+				//Get the sin and cos for theta 
+				cos_theta = (float)Math.cos(theta);
+				sin_theta = (float)Math.sin(theta);
+				
+				// Vertex 
+				this.mesh.v[i][j].x = center.x+r*cos_phi*cos_theta;
+				this.mesh.v[i][j].y = center.y+r*cos_phi*sin_theta;
+				this.mesh.v[i][j].z = center.z+r*sin_phi;
+				
+				// Unit normal to sphere at this vertex
+				this.mesh.n[i][j].x = cos_phi * cos_theta;
+				this.mesh.n[i][j].y = cos_phi * sin_theta;
+				this.mesh.n[i][j].z = sin_phi;
+			}
+		}
+	}
+}

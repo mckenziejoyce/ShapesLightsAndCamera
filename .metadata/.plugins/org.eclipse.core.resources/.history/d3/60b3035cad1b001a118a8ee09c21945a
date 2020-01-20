@@ -1,0 +1,108 @@
+//****************************************************************************
+//      Box class
+//****************************************************************************
+// McKenzie Joyce
+// CS480
+public class Box3D{
+	private Point3D center;
+	private Point3D vector;
+	private Point3D uVector;
+	private Point3D vVector;
+	private int stacks,slices;
+	public Mesh3D mesh;
+	public Mesh3D[] meshes;
+	private float uMax, uMin, vMax, vMin;
+	private float r;
+	
+	public Box3D(float _x, float _y, float _z, float _r, int _stacks, int _slices) {
+		this.center = new Point3D(_x,_y,_z);
+		this.stacks = _stacks;
+		this.slices = _slices;
+		this.r = _r;
+		this.vector = center.plus(new Point3D(-r, 0, 0));
+		this.uVector = new Point3D(0, -1*r, 0);
+		this.vVector = new Point3D(0, 0, 1*r);
+		this.uMin = -1;
+		this.uMax = 1;
+		this.vMin = -1;
+		this.vMax = 1;
+		initMesh();
+	}
+	public void set_center(float _x, float _y, float _z) {
+		this.center.x = _x;
+		this.center.y = _y;
+		this.center.z = _z;
+		fillMesh();
+	}
+	public void set_radius(float _r) {
+		this.r = _r;
+		fillMesh();
+	}
+	public void set_stacks(int _stacks){
+		  this.stacks = _stacks;
+		  initMesh(); // resized the mesh, must re-initialize
+	}
+
+	public void set_slices(int _slices){
+		this.slices = _slices;
+		initMesh(); // resized the mesh, must re-initialize
+	}
+
+	public int get_slices(){
+		return this.slices;
+	}
+
+	public int get_stacks(){
+		return this.stacks;
+	}
+	private void initMesh(){
+		//Define each of the six faces 
+		this.meshes = new Mesh3D[6];
+		fillMesh();  // set the mesh vertices and normals
+	}
+	private void fillMesh() {
+		int i, j;
+		float theta, phi;
+		float d_phi = (this.uMax-this.uMin)/((float)this.slices-1);
+		float d_theta = (this.vMax-this.vMin)/((float)this.stacks-1);
+		
+		for (int side = 0; side < 6; ++side) {
+			this.meshes[side] = new Mesh3D(stacks,slices);
+			if(side == 1) {
+				this.vector = center.plus(new Point3D(r, 0, 0));
+				// Make it negative for normal
+				this.uVector = uVector.scale(-1); 
+			} else if (side == 2) {
+				this.vector = center.plus(new Point3D(0, -r, 0));
+				this.uVector = new Point3D(1*r, 0, 0);
+				this.vVector = new Point3D(0, 0, 1*r);
+			} else if (side == 3) {
+				this.vector = center.plus(new Point3D(0, r, 0));
+				// Swap for normals
+				Point3D temp = uVector;
+				this.uVector = vVector;
+				this.vVector = temp; 
+			} else if (side == 4) {
+				this.vector = center.plus(new Point3D(0, 0, -r));
+				this.uVector = new Point3D(-1*r, 0, 0);
+				this.vVector = new Point3D(0, 1*r, 0);
+			} else if (side == 5) {
+				this.vector = center.plus(new Point3D(0, 0, r));
+				// Make it negative for normal
+				this.uVector = uVector.scale(-1); 
+			}
+			
+			for (i = 0, theta = vMin; i < stacks; ++i, theta += d_theta) {
+				for (j = 0, phi = uMin; j < slices; ++j, phi += d_phi) {
+					
+					// Compute vertex
+					this.meshes[side].v[i][j] = vector.plus(uVector.scale(theta).plus(vVector.scale(phi)));
+					
+					// Compute unit normal at vertex
+					this.meshes[side].n[i][j] = uVector.crossProduct(vVector);
+					this.meshes[side].n[i][j].normalize();
+				}
+			}
+		}
+	}
+}
